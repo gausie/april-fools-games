@@ -1,4 +1,17 @@
 {
   "name": "april-2025",
-  "packageManager": "yarn@4.8.0"
+  "packageManager": "yarn@4.8.0",
+  "type": "module",
+  "scripts": {
+    "start": "tsx --env-file=.env bot/index.ts",
+    "teardown": "tsx --env-file=.env --input-type=module -e 'const { teardown } = await import(\"./bot/scaffold.js\"); await teardown();'"
+  },
+  "devDependencies": {
+    "prettier": "^3.5.3",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "discord.js": "^14.18.0"
+  }
 }

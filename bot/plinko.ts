@@ -1,0 +1,329 @@
+import {
+  ChannelType,
+  codeBlock,
+  Events,
+  Message,
+  PermissionsBitField,
+} from "discord.js";
+import { client } from "./client.js";
+import { CONTAINER, teamRoleName, TEAMS } from "./constants.js";
+
+const CHANNEL_NAME = `plinko-📍`;
+
+const state = {
+  status: "waiting",
+  team: TEAMS[Math.floor(Math.random() * TEAMS.length)],
+  ball: [0, 0] as [number, number],
+  message: undefined as Message | undefined,
+  wait: 0,
+};
+
+const PRIZE_ROW = [
+  "　",
+  "🥉",
+  "　",
+  "🥈",
+  "　",
+  "🥉",
+  "　",
+  "　",
+  "　",
+  "🥇",
+  "　",
+  "　",
+  "　",
+  "🥉",
+  "　",
+  "🥈",
+  "　",
+  "🥉",
+  "　",
+];
+
+function renderBoard() {
+  // Render pegs
+  const pegs = [];
+  pegs.push([
+    "　",
+    "1️⃣",
+    "　",
+    "2️⃣",
+    "　",
+    "3️⃣",
+    "　",
+    "4️⃣",
+    "　",
+    "5️⃣",
+    "　",
+    "6️⃣",
+    "　",
+    "7️⃣",
+    "　",
+    "8️⃣",
+    "　",
+    "9️⃣",
+    "　",
+  ]);
+  pegs.push([
+    "　",
+    "　",
+    "　",
+    "　",
+    "　",
+    "　",
+    "　",
+    "　",
+    "　",
+    "　",
+    "　",
+    "　",
+    "　",
+    "　",
+    "　",
+    "　",
+    "　",
+    "　",
+    "　",
+  ]);
+  for (let i = 0; i < 4; i++) {
+    pegs.push([
+      "　",
+      "🔴",
+      "　",
+      "🔴",
+      "　",
+      "🔴",
+      "　",
+      "🔴",
+      "　",
+      "🔴",
+      "　",
+      "🔴",
+      "　",
+      "🔴",
+      "　",
+      "🔴",
+      "　",
+      "🔴",
+      "　",
+    ]);
+    pegs.push([
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+    ]);
+    pegs.push([
+      "🔴",
+      "　",
+      "🔴",
+      "　",
+      "🔴",
+      "　",
+      "🔴",
+      "　",
+      "🔴",
+      "　",
+      "🔴",
+      "　",
+      "🔴",
+      "　",
+      "🔴",
+      "　",
+      "🔴",
+      "　",
+      "🔴",
+    ]);
+    pegs.push([
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+      "　",
+    ]);
+  }
+  pegs.push([...PRIZE_ROW]);
+
+  let status = "";
+
+  // Do things for current status
+  switch (state.status) {
+    case "active": {
+      // Move the ball
+      const [x, y] = state.ball;
+      pegs[y][x] = "🎱";
+
+      status = `**${state.team}** is dropping a ball!`;
+      break;
+    }
+    case "completed": {
+      // Keep showing the ball for reference
+      const [x, y] = state.ball;
+      pegs[y][x] = "🎱";
+
+      const prize = PRIZE_ROW[state.ball[0]];
+      let points = 0;
+      switch (prize) {
+        case "🥇":
+          points = 50;
+          break;
+        case "🥈":
+          points = 20;
+          break;
+        case "🥉":
+          points = 10;
+          break;
+      }
+      status = `**${state.team}** has scored ${points} points!`;
+      break;
+    }
+    case "waiting": {
+      status = `Waiting for someone from **${state.team}** to drop a ball!`;
+      break;
+    }
+  }
+
+  // Calculate next move
+  switch (state.status) {
+    case "active": {
+      const [x, y] = state.ball;
+
+      // If we are at the bottom, we are done
+      if (y >= pegs.length - 1) {
+        state.status = "completed";
+        break;
+      }
+
+      // Always drops down
+      state.ball[1]++;
+
+      // If we can just drop down, do so
+      if (pegs[y + 1][x] === "　" || y >= pegs.length - 2) break;
+
+      // Otherwise either bounce of the walls or randomly
+      if (x === 0) {
+        state.ball[0]++;
+      } else if (x >= pegs[0].length - 1) {
+        state.ball[0]--;
+      } else {
+        state.ball[0] += Math.random() < 0.5 ? -1 : 1;
+      }
+      break;
+    }
+    case "completed": {
+      if (state.wait++ < 5) break;
+      state.wait = 0;
+      state.ball = [0, 0];
+      state.status = "waiting";
+      state.team = TEAMS[(TEAMS.indexOf(state.team) + 1) % TEAMS.length];
+      break;
+    }
+  }
+
+  return `Welcome to Plinko!\n\nCurrent status: ${status}\n\n${codeBlock(pegs.map((l) => l.join("")).join("\n"))}`;
+}
+
+export async function pullup() {
+  let container = client.guild.channels.cache.find(
+    (c) => c?.name === CONTAINER,
+  );
+  if (container?.type !== ChannelType.GuildCategory) return;
+
+  let channel = client.guild.channels.cache.find(
+    (c) => c.name === CHANNEL_NAME,
+  );
+  if (!channel) {
+    channel = await client.guild.channels.create({
+      name: CHANNEL_NAME,
+      type: ChannelType.GuildText,
+      parent: container,
+      permissionOverwrites: [
+        {
+          id: client.guild.id,
+          deny: [
+            PermissionsBitField.Flags.SendMessages,
+            PermissionsBitField.Flags.CreatePublicThreads,
+            PermissionsBitField.Flags.CreatePrivateThreads,
+          ],
+        },
+      ],
+    });
+  }
+
+  if (!channel.isSendable()) return;
+
+  const messages = await channel.messages.fetch();
+
+  state.message = messages.at(0) ?? (await channel.send(`Welcome to Plinko!`));
+
+  setInterval(async () => {
+    await state.message?.edit(renderBoard());
+  }, 1000);
+}
+
+const spots = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"];
+
+client.on(Events.MessageReactionAdd, async (reaction, user) => {
+  // Not related to this game
+  if (reaction.message !== state.message) return;
+
+  await reaction.remove();
+
+  if (!reaction.emoji.name) return;
+  if (!spots.includes(reaction.emoji.name)) {
+    console.log(`[PLINKO] Ignoring invalid emoji by ${user.username}`);
+    return;
+  }
+  if (state.status !== "waiting") {
+    console.log(
+      `[PLINKO] Ignoring attempted play by ${user.username} while game is in progress`,
+    );
+    return;
+  }
+
+  const role = [...client.guild.roles.cache.values()].find(
+    (r) => r.name === teamRoleName(state.team),
+  )!;
+  const member = await client.guild.members.fetch(user.id);
+  if (!member.roles.cache.has(role.id)) {
+    console.log(
+      `[PLINKO] Ignoring attemped play by ${user.username} when their team is not up`,
+    );
+    return;
+  }
+
+  state.status = "active";
+  state.ball = [spots.indexOf(reaction.emoji.name) * 2 + 1, 0];
+  console.log(
+    `[PLINKO] Ball dropped by ${user.username} from ${state.team} at ${reaction.emoji.name}`,
+  );
+});
