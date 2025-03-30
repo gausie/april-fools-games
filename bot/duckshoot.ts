@@ -64,6 +64,7 @@ export async function pullup() {
       const target = message.content;
       const points = target === "🦆" ? 5 : 1;
 
+      // Do this before we award points. If the message has already been handled (deleted), we want to create an exception before awaring points.
       await message?.delete();
 
       await awardPoints(
