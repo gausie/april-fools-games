@@ -50,7 +50,7 @@ const pairings = TEAMS.flatMap<Pairing>((a, i) =>
 function renderPairing(pairing: Pairing) {
   const ropeBefore = "⎯".repeat(Math.max(-20, 20 + pairing.score));
   const ropeAfter = "⎯".repeat(Math.min(20, 20 - pairing.score));
-  return `${pairing.content} (match ends in ${time(pairing.matchEnds, "R")}${pairing.extraTime ? " EXTRA TIME" : ""})\n\n${teamSymbol(pairing.pair[0])}${ropeBefore}🪢${ropeAfter}${teamSymbol(pairing.pair[1])}\n\n ​`;
+  return `${pairing.content} (match ends ${time(pairing.matchEnds, "R")}${pairing.extraTime ? " EXTRA TIME" : ""})\n\n${teamSymbol(pairing.pair[0])}${ropeBefore}🪢${ropeAfter}${teamSymbol(pairing.pair[1])}\n\n ​`;
 }
 
 async function updateScore(
@@ -114,7 +114,7 @@ async function parseExistingMatch(
     }
   }
 
-  const matchEnds = pairing.message.content.match(/match ends in <t:(\d+):R>/);
+  const matchEnds = pairing.message.content.match(/match ends <t:(\d+):R>/);
   pairing.matchEnds = new Date(parseInt(matchEnds?.[1] ?? "0") * 1000);
 
   await pairing.message.edit({ content: renderPairing(pairing) });
@@ -274,6 +274,7 @@ export async function pullup() {
 
       // Remove the reactions in preparation for the next match
       await pairing.message?.reactions.resolve("💪")?.remove();
+
       // And reset the pairing metadata
       pairing.matchEnds = new Date(Date.now() + GAME_LENGTH);
       pairing.score = 0;
