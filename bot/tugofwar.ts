@@ -272,6 +272,9 @@ export async function pullup() {
         `${gerund} ${loser} in a game of tug of war`,
       );
 
+      // Remove the reactions in preparation for the next match
+      await pairing.message?.reactions.resolve("💪")?.remove();
+      // And reset the pairing metadata
       pairing.matchEnds = new Date(Date.now() + GAME_LENGTH);
       pairing.score = 0;
       pairing.extraTime = false;
