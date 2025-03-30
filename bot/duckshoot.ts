@@ -61,15 +61,17 @@ export async function pullup() {
         return;
       }
 
-      const points = message.content === "🦆" ? 5 : 1;
+      const target = message.content;
+      const points = target === "🦆" ? 5 : 1;
+
+      await message?.delete();
+
       await awardPoints(
         roleNameToTeam(role.name),
         points,
-        `shooting a ${message.content} in ${channelMention(message.channelId)}`,
+        `shooting a ${target} in ${channelMention(message.channelId)}`,
         member.user,
       );
-
-      await message?.delete();
 
       // If this is not our active message, we must have restarted. Award points but don't carry on a new chain.
       if (message.id !== activeTarget?.id) {
