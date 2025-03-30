@@ -74,5 +74,6 @@ export async function awardPoints(
   // Post a log of the scores
   await channel.send({
     content,
+    allowedMentions: { users: [] },
   });
 }

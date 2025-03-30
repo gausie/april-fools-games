@@ -200,13 +200,13 @@ async function renderBoard() {
       let points = 0;
       switch (prize) {
         case "🥇":
-          points = 50;
+          points = 5;
           break;
         case "🥈":
-          points = 20;
+          points = 2;
           break;
         case "🥉":
-          points = 10;
+          points = 1;
           break;
       }
       status = `**${state.team}** has scored ${points} points!`;
