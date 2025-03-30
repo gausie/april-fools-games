@@ -115,7 +115,9 @@ async function parseExistingMatch(
   }
 
   const matchEnds = pairing.message.content.match(/match ends <t:(\d+):R>/);
-  pairing.matchEnds = new Date(parseInt(matchEnds?.[1] ?? "0") * 1000);
+  pairing.matchEnds = new Date(
+    parseInt(matchEnds?.[1] ?? (Date.now() / 1000).toString()) * 1000,
+  );
 
   await pairing.message.edit({ content: renderPairing(pairing) });
 
