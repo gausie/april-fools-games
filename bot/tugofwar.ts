@@ -1,5 +1,6 @@
 import {
   ChannelType,
+  Collection,
   DiscordAPIError,
   Events,
   Message,
@@ -8,6 +9,7 @@ import {
   PartialUser,
   PermissionsBitField,
   Role,
+  time,
   User,
   UserResolvable,
 } from "discord.js";
@@ -21,6 +23,7 @@ type Pairing = {
   pair: [string, string];
   content: string;
   score: number;
+  matchEnds: Date;
 };
 
 const pairings = TEAMS.flatMap<Pairing>((a, i) =>
@@ -29,13 +32,14 @@ const pairings = TEAMS.flatMap<Pairing>((a, i) =>
     pair: [a, b],
     message: undefined,
     score: 0,
+    matchEnds: new Date(),
   })),
 );
 
 function renderPairing(pairing: Pairing) {
   const ropeBefore = "⎯".repeat(Math.max(-20, 20 + pairing.score));
   const ropeAfter = "⎯".repeat(Math.min(20, 20 - pairing.score));
-  return `${pairing.content}\n\n${teamSymbol(pairing.pair[0])}${ropeBefore}🪢${ropeAfter}${teamSymbol(pairing.pair[1])}\n\n`;
+  return `${pairing.content} (match ends in ${time(pairing.matchEnds, "R")})\n\n${teamSymbol(pairing.pair[0])}${ropeBefore}🪢${ropeAfter}${teamSymbol(pairing.pair[1])}\n\n ​`;
 }
 
 async function updateScore(
@@ -67,6 +71,43 @@ async function updateScore(
     return false;
   }
   // Score was updated - maybe tell the central game scorer
+  return true;
+}
+
+async function parseExistingMatch(
+  pairing: Pairing,
+  messages: Collection<string, Message>,
+  teamRoles: Record<string, Role>,
+) {
+  pairing.message = messages.find((m) => m.content.startsWith(pairing.content));
+
+  if (!pairing.message) return false;
+
+  const pulls = pairing.message.reactions.cache.find(
+    (r) => r.emoji.name === "💪",
+  );
+  if (pulls) {
+    const users = await pulls.users.fetch();
+    for (const user of users.values()) {
+      if (
+        !(await updateScore(
+          user,
+          pairing,
+          teamRoles[pairing.pair[0]]!,
+          teamRoles[pairing.pair[1]]!,
+          true,
+        ))
+      ) {
+        await pulls.users.remove(user);
+      }
+    }
+  }
+
+  const matchEnds = pairing.message.content.match(/match ends in <t:(\d+):R>/);
+  pairing.matchEnds = new Date(parseInt(matchEnds?.[1] ?? "0") * 1000);
+
+  await pairing.message.edit({ content: renderPairing(pairing) });
+
   return true;
 }
 
@@ -113,34 +154,9 @@ export async function pullup() {
   );
 
   for (const pairing of pairings) {
-    pairing.message = messages.find((m) =>
-      m.content.startsWith(pairing.content),
-    );
+    if (await parseExistingMatch(pairing, messages, teamRoles)) continue;
 
-    if (pairing.message) {
-      const pulls = pairing.message.reactions.cache.find(
-        (r) => r.emoji.name === "💪",
-      );
-      if (pulls) {
-        const users = await pulls.users.fetch();
-        for (const user of users.values()) {
-          if (
-            !(await updateScore(
-              user,
-              pairing,
-              teamRoles[pairing.pair[0]]!,
-              teamRoles[pairing.pair[1]]!,
-              true,
-            ))
-          ) {
-            await pulls.users.remove(user);
-          }
-        }
-      }
-      await pairing.message.edit({ content: renderPairing(pairing) });
-      continue;
-    }
-
+    pairing.matchEnds = new Date(Date.now() + 60 * 60 * 1000);
     pairing.message = await channel.send({
       content: renderPairing(pairing),
     });

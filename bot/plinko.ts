@@ -22,6 +22,8 @@ const state = {
   wait: 0,
 };
 
+const SPOTS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"];
+
 const PRIZE_ROW = [
   "　",
   "🥉",
@@ -303,51 +305,49 @@ export async function pullup() {
     const board = await renderBoard();
     await state.message?.edit(board);
   }, 1000);
+
+  client.on(Events.MessageReactionAdd, async (reaction, user) => {
+    try {
+      // Not related to this game
+      if (reaction.message !== state.message) return;
+
+      await reaction.remove();
+
+      if (!reaction.emoji.name) return;
+      if (!SPOTS.includes(reaction.emoji.name)) {
+        console.log(`[PLINKO] Ignoring invalid emoji by ${user.username}`);
+        return;
+      }
+      if (state.status !== "waiting") {
+        console.log(
+          `[PLINKO] Ignoring attempted play by ${user.username} while game is in progress`,
+        );
+        return;
+      }
+
+      const role = [...client.guild.roles.cache.values()].find(
+        (r) => r.name === teamRoleName(state.team),
+      )!;
+      const member = await client.guild.members.fetch(user.id);
+      if (!member.roles.cache.has(role.id)) {
+        console.log(
+          `[PLINKO] Ignoring attemped play by ${user.username} when their team is not up`,
+        );
+        return;
+      }
+
+      state.status = "active";
+      state.user = member.user;
+      state.ball = [SPOTS.indexOf(reaction.emoji.name) * 2 + 1, 0];
+      console.log(
+        `[PLINKO] Ball dropped by ${user.username} from ${state.team} at ${reaction.emoji.name}`,
+      );
+    } catch (error) {
+      if (error instanceof DiscordAPIError) {
+        console.error(`[PLINKO] DiscordAPIError: ${error.message}`);
+        return;
+      }
+      throw error;
+    }
+  });
 }
-
-const spots = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"];
-
-client.on(Events.MessageReactionAdd, async (reaction, user) => {
-  try {
-    // Not related to this game
-    if (reaction.message !== state.message) return;
-
-    await reaction.remove();
-
-    if (!reaction.emoji.name) return;
-    if (!spots.includes(reaction.emoji.name)) {
-      console.log(`[PLINKO] Ignoring invalid emoji by ${user.username}`);
-      return;
-    }
-    if (state.status !== "waiting") {
-      console.log(
-        `[PLINKO] Ignoring attempted play by ${user.username} while game is in progress`,
-      );
-      return;
-    }
-
-    const role = [...client.guild.roles.cache.values()].find(
-      (r) => r.name === teamRoleName(state.team),
-    )!;
-    const member = await client.guild.members.fetch(user.id);
-    if (!member.roles.cache.has(role.id)) {
-      console.log(
-        `[PLINKO] Ignoring attemped play by ${user.username} when their team is not up`,
-      );
-      return;
-    }
-
-    state.status = "active";
-    state.user = member.user;
-    state.ball = [spots.indexOf(reaction.emoji.name) * 2 + 1, 0];
-    console.log(
-      `[PLINKO] Ball dropped by ${user.username} from ${state.team} at ${reaction.emoji.name}`,
-    );
-  } catch (error) {
-    if (error instanceof DiscordAPIError) {
-      console.error(`[PLINKO] DiscordAPIError: ${error.message}`);
-      return;
-    }
-    throw error;
-  }
-});
