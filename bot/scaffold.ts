@@ -1,8 +1,14 @@
-import { ChannelType, GuildFeature, PermissionsBitField } from "discord.js";
+import {
+  ChannelType,
+  EmbedBuilder,
+  GuildFeature,
+  PermissionsBitField,
+} from "discord.js";
 import { client } from "./client.js";
 import {
   CONTAINER,
   GENERAL,
+  SCORES,
   teamChannelName,
   teamRoleName,
   TEAMS,
@@ -30,6 +36,38 @@ export async function pullup() {
       type: ChannelType.GuildText,
       parent: container,
     });
+  }
+
+  // Create scoring channel
+  if (!channels.find((c) => c?.name === SCORES)) {
+    const scoresChannel = await client.guild.channels.create({
+      name: SCORES,
+      type: ChannelType.GuildText,
+      parent: container,
+      permissionOverwrites: [
+        {
+          id: client.guild.id,
+          deny: [
+            PermissionsBitField.Flags.SendMessages,
+            PermissionsBitField.Flags.CreatePublicThreads,
+            PermissionsBitField.Flags.CreatePrivateThreads,
+            PermissionsBitField.Flags.AddReactions,
+          ],
+        },
+      ],
+    });
+    const scoresPin = await scoresChannel.send({
+      embeds: [
+        new EmbedBuilder().setFields(
+          TEAMS.map((team) => ({
+            name: `${team} ${teamSymbol(team)}`,
+            value: "0",
+          })),
+        ),
+      ],
+    });
+
+    await scoresPin.pin();
   }
 
   // Create roles and channels for every team

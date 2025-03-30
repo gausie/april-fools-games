@@ -1,5 +1,6 @@
 import {
   ChannelType,
+  DiscordAPIError,
   Events,
   Message,
   MessageReaction,
@@ -148,42 +149,50 @@ export async function pullup() {
     user: User | PartialUser,
     add: boolean,
   ) {
-    const pairing = pairings.find((p) => p.message === reaction.message);
-    // Not related to this game
-    if (!pairing) return;
+    try {
+      const pairing = pairings.find((p) => p.message === reaction.message);
+      // Not related to this game
+      if (!pairing) return;
 
-    if (reaction.emoji.name !== "💪") {
-      console.log(
-        `[TUGOFWAR] Removing reaction that is not the right emoji (from ${user.displayName})`,
-      );
-      await reaction.users.remove(user.id);
-      return;
-    }
-    const roleA = [...client.guild.roles.cache.values()].find(
-      (r) => r.name === teamRoleName(pairing.pair[0]!),
-    )!;
-    const roleB = [...client.guild.roles.cache.values()].find(
-      (r) => r.name === teamRoleName(pairing.pair[1]!),
-    )!;
-
-    if (!(await updateScore(user.id, pairing, roleA, roleB, add, true))) {
-      await reaction.users.remove(user.id);
-      return;
-    }
-
-    // Update score on message
-    await pairing.message!.edit({ content: renderPairing(pairing) });
-
-    // Only allow member to be in one battle at a time
-    if (add) {
-      for (const other of pairings) {
-        if (other === pairing) continue;
-        const otherReact = await other.message?.reactions
-          .resolve("💪")
-          ?.fetch();
-        if (!otherReact) continue;
-        otherReact.users.remove(user.id);
+      if (reaction.emoji.name !== "💪") {
+        console.log(
+          `[TUGOFWAR] Removing reaction that is not the right emoji (from ${user.displayName})`,
+        );
+        await reaction.users.remove(user.id);
+        return;
       }
+      const roleA = [...client.guild.roles.cache.values()].find(
+        (r) => r.name === teamRoleName(pairing.pair[0]!),
+      )!;
+      const roleB = [...client.guild.roles.cache.values()].find(
+        (r) => r.name === teamRoleName(pairing.pair[1]!),
+      )!;
+
+      if (!(await updateScore(user.id, pairing, roleA, roleB, add, true))) {
+        await reaction.users.remove(user.id);
+        return;
+      }
+
+      // Update score on message
+      await pairing.message!.edit({ content: renderPairing(pairing) });
+
+      // Only allow member to be in one battle at a time
+      if (add) {
+        for (const other of pairings) {
+          if (other === pairing) continue;
+          const otherReact = await other.message?.reactions
+            .resolve("💪")
+            ?.fetch();
+          if (!otherReact) continue;
+          otherReact.users.remove(user.id);
+        }
+      }
+    } catch (error) {
+      if (error instanceof DiscordAPIError) {
+        console.error(`[DUCKSHOT] DiscordAPIError: ${error.message}`);
+        return;
+      }
+      throw error;
     }
   }
 

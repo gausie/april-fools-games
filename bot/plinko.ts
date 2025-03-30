@@ -1,12 +1,15 @@
 import {
   ChannelType,
   codeBlock,
+  DiscordAPIError,
   Events,
   Message,
   PermissionsBitField,
+  User,
+  userMention,
 } from "discord.js";
 import { client } from "./client.js";
-import { CONTAINER, teamRoleName, TEAMS } from "./constants.js";
+import { awardPoints, CONTAINER, teamRoleName, TEAMS } from "./constants.js";
 
 const CHANNEL_NAME = `plinko-📍`;
 
@@ -15,6 +18,7 @@ const state = {
   team: TEAMS[Math.floor(Math.random() * TEAMS.length)],
   ball: [0, 0] as [number, number],
   message: undefined as Message | undefined,
+  user: null as User | null,
   wait: 0,
 };
 
@@ -40,7 +44,7 @@ const PRIZE_ROW = [
   "　",
 ];
 
-function renderBoard() {
+async function renderBoard() {
   // Render pegs
   const pegs = [];
   pegs.push([
@@ -182,7 +186,7 @@ function renderBoard() {
       const [x, y] = state.ball;
       pegs[y][x] = "🎱";
 
-      status = `**${state.team}** is dropping a ball!`;
+      status = `**${userMention(state.user!.id)}** is dropping a ball for **${state.team}**!`;
       break;
     }
     case "completed": {
@@ -204,6 +208,14 @@ function renderBoard() {
           break;
       }
       status = `**${state.team}** has scored ${points} points!`;
+      if (state.wait === 0) {
+        await awardPoints(
+          state.user!,
+          state.team,
+          points,
+          `hitting a ${prize} in plinko`,
+        );
+      }
       break;
     }
     case "waiting": {
@@ -286,44 +298,54 @@ export async function pullup() {
   state.message = messages.at(0) ?? (await channel.send(`Welcome to Plinko!`));
 
   setInterval(async () => {
-    await state.message?.edit(renderBoard());
+    const board = await renderBoard();
+    await state.message?.edit(board);
   }, 1000);
 }
 
 const spots = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"];
 
 client.on(Events.MessageReactionAdd, async (reaction, user) => {
-  // Not related to this game
-  if (reaction.message !== state.message) return;
+  try {
+    // Not related to this game
+    if (reaction.message !== state.message) return;
 
-  await reaction.remove();
+    await reaction.remove();
 
-  if (!reaction.emoji.name) return;
-  if (!spots.includes(reaction.emoji.name)) {
-    console.log(`[PLINKO] Ignoring invalid emoji by ${user.username}`);
-    return;
-  }
-  if (state.status !== "waiting") {
+    if (!reaction.emoji.name) return;
+    if (!spots.includes(reaction.emoji.name)) {
+      console.log(`[PLINKO] Ignoring invalid emoji by ${user.username}`);
+      return;
+    }
+    if (state.status !== "waiting") {
+      console.log(
+        `[PLINKO] Ignoring attempted play by ${user.username} while game is in progress`,
+      );
+      return;
+    }
+
+    const role = [...client.guild.roles.cache.values()].find(
+      (r) => r.name === teamRoleName(state.team),
+    )!;
+    const member = await client.guild.members.fetch(user.id);
+    if (!member.roles.cache.has(role.id)) {
+      console.log(
+        `[PLINKO] Ignoring attemped play by ${user.username} when their team is not up`,
+      );
+      return;
+    }
+
+    state.status = "active";
+    state.user = member.user;
+    state.ball = [spots.indexOf(reaction.emoji.name) * 2 + 1, 0];
     console.log(
-      `[PLINKO] Ignoring attempted play by ${user.username} while game is in progress`,
+      `[PLINKO] Ball dropped by ${user.username} from ${state.team} at ${reaction.emoji.name}`,
     );
-    return;
+  } catch (error) {
+    if (error instanceof DiscordAPIError) {
+      console.error(`[PLINKO] DiscordAPIError: ${error.message}`);
+      return;
+    }
+    throw error;
   }
-
-  const role = [...client.guild.roles.cache.values()].find(
-    (r) => r.name === teamRoleName(state.team),
-  )!;
-  const member = await client.guild.members.fetch(user.id);
-  if (!member.roles.cache.has(role.id)) {
-    console.log(
-      `[PLINKO] Ignoring attemped play by ${user.username} when their team is not up`,
-    );
-    return;
-  }
-
-  state.status = "active";
-  state.ball = [spots.indexOf(reaction.emoji.name) * 2 + 1, 0];
-  console.log(
-    `[PLINKO] Ball dropped by ${user.username} from ${state.team} at ${reaction.emoji.name}`,
-  );
 });
