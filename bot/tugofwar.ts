@@ -83,6 +83,8 @@ export async function pullup() {
     channel = await client.guild.channels.create({
       name: CHANNEL_NAME,
       type: ChannelType.GuildText,
+      topic:
+        "Welcome to Tug of War game! Your team has three different matches - you can help in a match by reacting with a 💪. The team that has the most reactions wins!",
       parent: container,
       permissionOverwrites: [
         {

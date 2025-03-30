@@ -277,6 +277,8 @@ export async function pullup() {
     channel = await client.guild.channels.create({
       name: CHANNEL_NAME,
       type: ChannelType.GuildText,
+      topic:
+        "Welcome to the Plinko game! Everyone is welcome to play, but only the team that is up can drop a ball. If that team is yours, react with the number of the peg you want to drop from!",
       parent: container,
       permissionOverwrites: [
         {

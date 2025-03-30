@@ -93,9 +93,18 @@ export async function pullup() {
         permissionOverwrites: [
           {
             id: client.guild.id,
-            deny: [PermissionsBitField.Flags.ViewChannel],
+            deny: [
+              PermissionsBitField.Flags.ViewChannel,
+              PermissionsBitField.Flags.SendMessages,
+            ],
           },
-          { id: role.id, allow: [PermissionsBitField.Flags.ViewChannel] },
+          {
+            id: role.id,
+            allow: [
+              PermissionsBitField.Flags.ViewChannel,
+              PermissionsBitField.Flags.SendMessages,
+            ],
+          },
         ],
       });
     }
