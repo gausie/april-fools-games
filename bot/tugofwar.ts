@@ -14,9 +14,18 @@ import {
   UserResolvable,
 } from "discord.js";
 import { client } from "./client.js";
-import { CONTAINER, teamRoleName, TEAMS, teamSymbol } from "./constants.js";
+import {
+  awardPoints,
+  CONTAINER,
+  teamRoleName,
+  TEAMS,
+  teamSymbol,
+} from "./constants.js";
 
 const CHANNEL_NAME = `tug-of-war-🪢`;
+
+const GAME_LENGTH = 1000 * 60 * 60; // 1 hour
+const EXTRA_TIME = 1000 * 60 * 5; // 5 minutes
 
 type Pairing = {
   message?: Message;
@@ -24,6 +33,7 @@ type Pairing = {
   content: string;
   score: number;
   matchEnds: Date;
+  extraTime: boolean;
 };
 
 const pairings = TEAMS.flatMap<Pairing>((a, i) =>
@@ -33,13 +43,14 @@ const pairings = TEAMS.flatMap<Pairing>((a, i) =>
     message: undefined,
     score: 0,
     matchEnds: new Date(),
+    extraTime: false,
   })),
 );
 
 function renderPairing(pairing: Pairing) {
   const ropeBefore = "⎯".repeat(Math.max(-20, 20 + pairing.score));
   const ropeAfter = "⎯".repeat(Math.min(20, 20 - pairing.score));
-  return `${pairing.content} (match ends in ${time(pairing.matchEnds, "R")})\n\n${teamSymbol(pairing.pair[0])}${ropeBefore}🪢${ropeAfter}${teamSymbol(pairing.pair[1])}\n\n ​`;
+  return `${pairing.content} (match ends in ${time(pairing.matchEnds, "R")}${pairing.extraTime ? " EXTRA TIME" : ""})\n\n${teamSymbol(pairing.pair[0])}${ropeBefore}🪢${ropeAfter}${teamSymbol(pairing.pair[1])}\n\n ​`;
 }
 
 async function updateScore(
@@ -111,6 +122,67 @@ async function parseExistingMatch(
   return true;
 }
 
+async function handleAddOrRemove(
+  reaction: MessageReaction | PartialMessageReaction,
+  user: User | PartialUser,
+  add: boolean,
+) {
+  try {
+    const pairing = pairings.find((p) => p.message === reaction.message);
+    // Not related to this game
+    if (!pairing) return;
+
+    if (reaction.emoji.name !== "💪") {
+      console.log(
+        `[TUGOFWAR] Removing reaction that is not the right emoji (from ${user.displayName})`,
+      );
+      await reaction.users.remove(user.id);
+      return;
+    }
+
+    if (pairing.matchEnds < new Date()) {
+      console.log(
+        `[TUGOFWAR] Ignoring reaction to a match that has already ended (from ${user.displayName})`,
+      );
+      await reaction.users.remove(user.id);
+      return;
+    }
+
+    const roleA = [...client.guild.roles.cache.values()].find(
+      (r) => r.name === teamRoleName(pairing.pair[0]!),
+    )!;
+    const roleB = [...client.guild.roles.cache.values()].find(
+      (r) => r.name === teamRoleName(pairing.pair[1]!),
+    )!;
+
+    if (!(await updateScore(user.id, pairing, roleA, roleB, add, true))) {
+      await reaction.users.remove(user.id);
+      return;
+    }
+
+    // Update score on message
+    await pairing.message!.edit({ content: renderPairing(pairing) });
+
+    // Only allow member to be in one battle at a time
+    if (add) {
+      for (const other of pairings) {
+        if (other === pairing) continue;
+        const otherReact = await other.message?.reactions
+          .resolve("💪")
+          ?.fetch();
+        if (!otherReact) continue;
+        otherReact.users.remove(user.id);
+      }
+    }
+  } catch (error) {
+    if (error instanceof DiscordAPIError) {
+      console.error(`[DUCKSHOT] DiscordAPIError: ${error.message}`);
+      return;
+    }
+    throw error;
+  }
+}
+
 export async function pullup() {
   let container = client.guild.channels.cache.find(
     (c) => c?.name === CONTAINER,
@@ -156,63 +228,57 @@ export async function pullup() {
   for (const pairing of pairings) {
     if (await parseExistingMatch(pairing, messages, teamRoles)) continue;
 
-    pairing.matchEnds = new Date(Date.now() + 60 * 60 * 1000);
+    pairing.matchEnds = new Date(Date.now() + GAME_LENGTH);
     pairing.message = await channel.send({
       content: renderPairing(pairing),
     });
   }
 
-  async function handleAddOrRemove(
-    reaction: MessageReaction | PartialMessageReaction,
-    user: User | PartialUser,
-    add: boolean,
-  ) {
-    try {
-      const pairing = pairings.find((p) => p.message === reaction.message);
-      // Not related to this game
-      if (!pairing) return;
+  setInterval(async () => {
+    const now = new Date();
+    for (const pairing of pairings) {
+      // If match is not over, ignore
+      if (pairing.matchEnds > now) continue;
 
-      if (reaction.emoji.name !== "💪") {
+      if (pairing.score === 0) {
         console.log(
-          `[TUGOFWAR] Removing reaction that is not the right emoji (from ${user.displayName})`,
+          `[TUGOFWAR] Match ${pairing.pair[0]} vs ${pairing.pair[1]} ended in a draw, so adding extra time`,
         );
-        await reaction.users.remove(user.id);
-        return;
-      }
-      const roleA = [...client.guild.roles.cache.values()].find(
-        (r) => r.name === teamRoleName(pairing.pair[0]!),
-      )!;
-      const roleB = [...client.guild.roles.cache.values()].find(
-        (r) => r.name === teamRoleName(pairing.pair[1]!),
-      )!;
-
-      if (!(await updateScore(user.id, pairing, roleA, roleB, add, true))) {
-        await reaction.users.remove(user.id);
-        return;
+        pairing.extraTime = true;
+        pairing.matchEnds = new Date(Date.now() + EXTRA_TIME);
+        await pairing.message?.edit({ content: renderPairing(pairing) });
+        continue;
       }
 
-      // Update score on message
-      await pairing.message!.edit({ content: renderPairing(pairing) });
+      const [winner, loser] =
+        pairing.score < 0
+          ? [pairing.pair[0], pairing.pair[1]]
+          : [pairing.pair[1], pairing.pair[0]];
+      const score = Math.abs(pairing.score);
+      console.log(
+        `[TUGOFWAR] Match ${pairing.pair[0]} vs ${pairing.pair[1]} ended with ${winner} winning by ${score}`,
+      );
 
-      // Only allow member to be in one battle at a time
-      if (add) {
-        for (const other of pairings) {
-          if (other === pairing) continue;
-          const otherReact = await other.message?.reactions
-            .resolve("💪")
-            ?.fetch();
-          if (!otherReact) continue;
-          otherReact.users.remove(user.id);
-        }
-      }
-    } catch (error) {
-      if (error instanceof DiscordAPIError) {
-        console.error(`[DUCKSHOT] DiscordAPIError: ${error.message}`);
-        return;
-      }
-      throw error;
+      let gerund = (() => {
+        if (score < 3) return "barely beating";
+        if (score < 6) return "besting";
+        if (score < 15) return "dominating";
+        return "annihilating";
+      })();
+
+      await awardPoints(
+        winner,
+        25,
+        `${gerund} ${loser} in a game of tug of war`,
+      );
+
+      pairing.matchEnds = new Date(Date.now() + GAME_LENGTH);
+      pairing.score = 0;
+      pairing.extraTime = false;
+
+      await pairing.message?.edit({ content: renderPairing(pairing) });
     }
-  }
+  }, 1000 * 30);
 
   client.on(Events.MessageReactionAdd, async (reaction, user) => {
     handleAddOrRemove(reaction, user, true);

@@ -212,10 +212,10 @@ async function renderBoard() {
       status = `**${state.team}** has scored ${points} points!`;
       if (state.wait === 0) {
         await awardPoints(
-          state.user!,
           state.team,
           points,
           `hitting a ${prize} in plinko`,
+          state.user ?? undefined,
         );
       }
       break;

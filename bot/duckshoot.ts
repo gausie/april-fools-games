@@ -63,10 +63,10 @@ export async function pullup() {
 
       const points = message.content === "🦆" ? 5 : 1;
       await awardPoints(
-        member.user,
         roleNameToTeam(role.name),
         points,
         `shooting a ${message.content} in ${channelMention(message.channelId)}`,
+        member.user,
       );
 
       await message?.delete();

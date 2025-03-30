@@ -37,10 +37,10 @@ async function getScoresChannel() {
 }
 
 export async function awardPoints(
-  user: User,
   team: string,
   points: number,
   reason: string,
+  user?: User,
 ) {
   const channel = await getScoresChannel();
   if (!channel) return;
@@ -67,8 +67,12 @@ export async function awardPoints(
     ],
   });
 
+  const content = user
+    ? `${userMention(user.id)} scored ${points} points for ${team} ${teamSymbol(team)} by ${reason}`
+    : `${team} ${teamSymbol(team)} scored ${points} points by ${reason}`;
+
   // Post a log of the scores
   await channel.send({
-    content: `${userMention(user.id)} scored ${points} points for ${team} ${teamSymbol(team)} by ${reason}`,
+    content,
   });
 }
