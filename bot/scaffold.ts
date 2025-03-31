@@ -98,7 +98,7 @@ export async function pullup() {
       name: GENERAL,
       type: ChannelType.GuildText,
       topic:
-        "Happy festival of fools! Work with your team mates to score points via the amusements and attractions available in the server today",
+        "Happy festival of fools! Work with your team mates to score points via the amusements and attractions available in the server today. If you see a 🎯 (or even a 🦆) around the server, react with a 🔫 to see if you can score some points for your team!",
       parent: container,
     });
   }

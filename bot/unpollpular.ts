@@ -93,11 +93,14 @@ export async function pullup() {
     });
   }
 
-  if (!channel.isSendable()) return;
+  if (!channel.isSendable()) {
+    console.log(`[UNPOLLPULAR] Channel is not sendable`);
+    return;
+  }
 
   const messages = await channel.messages.fetch();
   pollMessage = messages.last();
-  if (!pollMessage) {
+  if (!pollMessage || !pollMessage.poll || pollMessage.poll.resultsFinalized) {
     pollMessage = await createPoll(channel);
   }
 
