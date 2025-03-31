@@ -25,7 +25,7 @@ import {
 const CHANNEL_NAME = `tug-of-war-🪢`;
 
 const GAME_LENGTH = 1000 * 60 * 60; // 1 hour
-const EXTRA_TIME = 1000 * 60 * 5; // 5 minutes
+const EXTRA_TIME = 1000 * 60 * 15; // 15 minutes
 
 type Pairing = {
   message?: Message;
