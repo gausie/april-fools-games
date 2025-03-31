@@ -1,5 +1,7 @@
 import {
   ChannelType,
+  EmbedType,
+  Events,
   Message,
   PermissionsBitField,
   SendableChannels,
@@ -52,7 +54,7 @@ async function createPoll(channel: SendableChannels) {
       answers,
       duration: GAME_LENGTH,
       question: {
-        text: "What answer will lose?",
+        text: "Which answer will lose?",
       },
     },
   });
@@ -98,7 +100,13 @@ export async function pullup() {
     pollMessage = await createPoll(channel);
   }
 
-  setInterval(async () => {
+  client.on(Events.MessageCreate, async (message) => {
+    if (message.channel !== channel) return;
+    if (message.embeds.length === 0) return;
+    const embed = message.embeds[0];
+    if (embed.data.type !== EmbedType.PollResult) return;
+    await message.delete();
+
     if (!pollMessage?.poll) {
       console.log(
         "[UNPOLLPULAR] Poll message is broken? It doesn't exist or doesn't have a poll or something",
@@ -106,9 +114,9 @@ export async function pullup() {
       return;
     }
     const poll = pollMessage.poll;
-    if (!poll.resultsFinalized) {
-      return;
-    }
+
+    // double check
+    if (!poll.resultsFinalized) return;
 
     const losingValue =
       poll.answers.sort((a, b) => a.voteCount - b.voteCount).get(0)
@@ -140,7 +148,7 @@ export async function pullup() {
     const total = Object.values(distribution).reduce((a, b) => a + b, 0);
 
     console.log(
-      `[UNPOLLPULAR] Poll over! ${total} total votes and ${emoji} lost`,
+      `[UNPOLLPULAR] Poll over! ${total} total votes and ${emoji} lost (lowest score was ${losingValue})`,
     );
 
     for (const [team, ratio] of Object.entries(distribution)) {
@@ -153,5 +161,5 @@ export async function pullup() {
     }
 
     pollMessage = await createPoll(channel);
-  }, 5000);
+  });
 }
