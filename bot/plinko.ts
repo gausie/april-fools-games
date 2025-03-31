@@ -303,10 +303,19 @@ export async function pullup() {
   state.message = pinned.at(0) ?? (await channel.send(`Welcome to Plinko!`));
   if (!state.message.pinned) await state.message.pin();
 
-  setInterval(async () => {
+  async function frame() {
+    const start = Date.now();
     const board = await renderBoard();
-    await state.message?.edit(board);
-  }, 1000);
+    if (!state.message) {
+      console.log("[PLINKO] Something has gone wrong, message is undefined");
+      return;
+    }
+    await state.message.edit(board);
+    const timeTaken = Date.now() - start;
+    // We want this frame to take at least a second, but don't bother waiting if it's already been a second
+    setTimeout(frame, Math.max(0, 1000 - timeTaken));
+  }
+  await frame();
 
   client.on(Events.MessageReactionAdd, async (reaction, user) => {
     try {
