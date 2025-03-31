@@ -19,7 +19,7 @@ export class Discord extends Client {
   }
 
   get guild() {
-    return this.guilds.cache.first()!;
+    return this.guilds.cache.get(process.env["GUILD_ID"]!)!;
   }
 }
 
