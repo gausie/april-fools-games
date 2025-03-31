@@ -267,6 +267,8 @@ async function renderBoard() {
 }
 
 export async function pullup() {
+  console.log("[PLINKO] Starting");
+
   let container = client.guild.channels.cache.find(
     (c) => c?.name === CONTAINER,
   );
@@ -297,9 +299,9 @@ export async function pullup() {
 
   if (!channel.isSendable()) return;
 
-  const messages = await channel.messages.fetch();
-
-  state.message = messages.at(0) ?? (await channel.send(`Welcome to Plinko!`));
+  const pinned = await channel.messages.fetchPinned();
+  state.message = pinned.at(0) ?? (await channel.send(`Welcome to Plinko!`));
+  if (!state.message.pinned) await state.message.pin();
 
   setInterval(async () => {
     const board = await renderBoard();

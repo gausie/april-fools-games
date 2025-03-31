@@ -38,6 +38,7 @@ function isTargetMessage(message: Message<boolean>) {
 }
 
 export async function pullup() {
+  console.log("[DUCKSHOT] Starting");
   let activeTarget = await postTarget();
 
   client.on(Events.MessageReactionAdd, async (reaction, user) => {

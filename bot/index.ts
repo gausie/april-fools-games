@@ -5,8 +5,8 @@ import * as plinko from "./plinko.js";
 import * as duckshoot from "./duckshoot.js";
 import * as kissingbooth from "./kissingbooth.js";
 
+console.log("Logging in");
 await client.login();
-console.log("Online");
 
 await scaffold.pullup();
 await tugofwar.pullup();

@@ -5,6 +5,8 @@ import { CONTAINER } from "./constants.js";
 const CHANNEL_NAME = `kennys-kissing-booth-🧑‍❤️‍💋‍🧑`;
 
 export async function pullup() {
+  console.log("[KISSING BOOTH] Starting");
+
   let container = client.guild.channels.cache.find(
     (c) => c?.name === CONTAINER,
   );
