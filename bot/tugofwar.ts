@@ -65,19 +65,19 @@ async function updateScore(
   if (member.roles.cache.has(roleA.id)) {
     log &&
       console.log(
-        `[TUGOFWAR] ${add ? "Adding" : "Removing"} tug for ${pairing.pair[0]} in ${pairing.pair[0]} vs ${pairing.pair[1]} (${member.displayName})`,
+        `[TUGOFWAR] ${add ? "Adding" : "Removing"} tug for ${pairing.pair[0]} in ${pairing.pair[0]} vs ${pairing.pair[1]} (${member.user.username})`,
       );
     pairing.score += add ? -1 : 1;
   } else if (member.roles.cache.has(roleB.id)) {
     log &&
       console.log(
-        `[TUGOFWAR] ${add ? "Adding" : "Removing"} tug for ${pairing.pair[1]} in ${pairing.pair[0]} vs ${pairing.pair[1]} (${member.displayName})`,
+        `[TUGOFWAR] ${add ? "Adding" : "Removing"} tug for ${pairing.pair[1]} in ${pairing.pair[0]} vs ${pairing.pair[1]} (${member.user.username})`,
       );
     pairing.score += add ? 1 : -1;
   } else if (add) {
     log &&
       console.log(
-        `[TUGOFWAR] Removing irrelevant reaction in ${pairing.pair[0]} vs ${pairing.pair[1]} (from ${member.displayName})`,
+        `[TUGOFWAR] Removing irrelevant reaction in ${pairing.pair[0]} vs ${pairing.pair[1]} (from ${member.user.username})`,
       );
     return false;
   }
@@ -136,7 +136,7 @@ async function handleAddOrRemove(
 
     if (reaction.emoji.name !== "💪") {
       console.log(
-        `[TUGOFWAR] Removing reaction that is not the right emoji (from ${user.displayName})`,
+        `[TUGOFWAR] Removing reaction that is not the right emoji (from ${user.username})`,
       );
       await reaction.users.remove(user.id);
       return;
@@ -144,7 +144,7 @@ async function handleAddOrRemove(
 
     if (pairing.matchEnds < new Date()) {
       console.log(
-        `[TUGOFWAR] Ignoring reaction to a match that has already ended (from ${user.displayName})`,
+        `[TUGOFWAR] Ignoring reaction to a match that has already ended (from ${user.username})`,
       );
       await reaction.users.remove(user.id);
       return;
@@ -186,6 +186,7 @@ async function handleAddOrRemove(
 }
 
 export async function pullup() {
+  console.log("[TUGOFWAR] Starting");
   let container = client.guild.channels.cache.find(
     (c) => c?.name === CONTAINER,
   );

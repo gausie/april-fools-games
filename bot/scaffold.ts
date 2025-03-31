@@ -32,6 +32,17 @@ async function assignTeams() {
   );
 
   async function assignRandomTeam(member: GuildMember) {
+    if (member.user.bot) return;
+
+    const existingRole = Object.entries(teamRoles).find((r) =>
+      member.roles.cache.has(r[1].id),
+    );
+
+    if (existingRole) {
+      counts[existingRole[0]] += 1;
+      return;
+    }
+
     const bottomTwo = Object.entries(counts)
       .sort(([, a], [, b]) => a - b)
       .slice(0, 2);
@@ -86,6 +97,8 @@ export async function pullup() {
     await client.guild.channels.create({
       name: GENERAL,
       type: ChannelType.GuildText,
+      topic:
+        "Happy festival of fools! Work with your team mates to score points via the amusements and attractions available in the server today",
       parent: container,
     });
   }
@@ -96,6 +109,8 @@ export async function pullup() {
     const scoresChannel = await client.guild.channels.create({
       name: SCORES,
       type: ChannelType.GuildText,
+      topic:
+        "Here you can keep track of the overall scores as well as how they were... scored",
       parent: container,
       permissionOverwrites: [
         {

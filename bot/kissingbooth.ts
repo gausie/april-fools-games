@@ -20,7 +20,7 @@ export async function pullup() {
     channel = await client.guild.channels.create({
       name: CHANNEL_NAME,
       topic:
-        "Welcome to the Kenny's CircASS kissing booth! Kenny gave us a tonne of kisses to hand out, so post your message below and receive a kiss from Kenny!",
+        "Welcome to the Kenny's CircASS kissing booth! Kenny gave us a tonne of kisses to hand out, so post your message below. You don't receive points but you do receive a kiss from Kenny!",
       type: ChannelType.GuildText,
       parent: container,
       rateLimitPerUser: 60 * 60,
