@@ -13,13 +13,14 @@ async function getPossibleChannels() {
   return [...channels.values()]
     .filter((c) => c !== null)
     .filter((c) => c.isSendable() && c.isTextBased())
-    .filter((c) => {
-      const permissions = c.permissionsFor(client.guild.roles.everyone);
-      return (
-        permissions.has(PermissionsBitField.Flags.ViewChannel) &&
-        permissions.has(PermissionsBitField.Flags.SendMessages)
-      );
-    });
+    .filter((c) =>
+      c
+        .permissionsFor(client.guild.roles.everyone)
+        .has([
+          PermissionsBitField.Flags.ViewChannel,
+          PermissionsBitField.Flags.SendMessages,
+        ]),
+    );
 }
 
 async function postTarget() {

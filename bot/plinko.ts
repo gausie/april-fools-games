@@ -210,7 +210,7 @@ async function renderBoard() {
           break;
       }
       status = `**${state.team}** has scored ${points} points!`;
-      if (state.wait === 0) {
+      if (state.wait === 0 && points > 0) {
         await awardPoints(
           state.team,
           points,

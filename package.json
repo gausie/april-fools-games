@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "start": "tsx --env-file=.env bot/index.ts",
-    "teardown": "tsx --env-file=.env --input-type=module -e 'const { teardown } = await import(\"./bot/scaffold.js\"); await teardown();'"
+    "teardown": "tsx --env-file=.env --input-type=module -e 'const { teardown } = await import(\"./bot/scaffold.js\"); await teardown();'",
+    "format": "prettier --write ."
   },
   "devDependencies": {
     "prettier": "^3.5.3",
