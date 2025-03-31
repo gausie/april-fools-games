@@ -119,7 +119,6 @@ export async function pullup() {
             PermissionsBitField.Flags.SendMessages,
             PermissionsBitField.Flags.CreatePublicThreads,
             PermissionsBitField.Flags.CreatePrivateThreads,
-            PermissionsBitField.Flags.AddReactions,
           ],
         },
       ],
