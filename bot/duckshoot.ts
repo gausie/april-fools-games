@@ -38,7 +38,7 @@ function isTargetMessage(message: Message<boolean>) {
 }
 
 export async function pullup() {
-  console.log("[DUCKSHOT] Starting");
+  console.log("[DUCKSHOOT] Starting");
   let activeTarget = await postTarget();
 
   client.on(Events.MessageReactionAdd, async (reaction, user) => {
@@ -48,7 +48,7 @@ export async function pullup() {
       await reaction.users.remove(user.id);
       if (reaction.emoji.name !== "🔫") {
         console.log(
-          `[DUCKSHOT] ${user.username} tried to shoot with ${reaction.emoji.name} instead of 🔫`,
+          `[DUCKSHOOT] ${user.username} tried to shoot with ${reaction.emoji.name} instead of 🔫`,
         );
         return;
       }
@@ -59,7 +59,7 @@ export async function pullup() {
       );
 
       if (!role) {
-        console.log(`[DUCKSHOT] ${user.username} has no team role`);
+        console.log(`[DUCKSHOOT] ${user.username} has no team role`);
         return;
       }
 
@@ -79,7 +79,7 @@ export async function pullup() {
       // If this is not our active message, we must have restarted. Award points but don't carry on a new chain.
       if (message.id !== activeTarget?.id) {
         console.log(
-          `[DUCKSHOT] ${user.username} shot an old target for ${points} point(s) to ${role.name}!`,
+          `[DUCKSHOOT] ${user.username} shot an old target for ${points} point(s) to ${role.name}!`,
         );
         return;
       }
@@ -87,13 +87,13 @@ export async function pullup() {
       // Post a new target at some time in the next 1-4 minutes
       const nextTime = (Math.random() * 3 + 1) * 1000 * 60;
       console.log(
-        `[DUCKSHOT] ${user.username} shot the target for ${points} point(s) to ${role.name}! Next one in ${nextTime / 1000} seconds`,
+        `[DUCKSHOOT] ${user.username} shot the target for ${points} point(s) to ${role.name}! Next one in ${nextTime / 1000} seconds`,
       );
 
       setTimeout(async () => (activeTarget = await postTarget()), nextTime);
     } catch (error) {
       if (error instanceof DiscordAPIError) {
-        console.error(`[DUCKSHOT] DiscordAPIError: ${error.message}`);
+        console.error(`[DUCKSHOOT] DiscordAPIError: ${error.message}`);
         return;
       }
       throw error;
