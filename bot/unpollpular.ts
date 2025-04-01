@@ -107,7 +107,9 @@ export async function pullup() {
     return;
   }
 
-  const messages = (await channel.messages.fetch()).sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+  const messages = (await channel.messages.fetch()).sort(
+    (a, b) => a.createdTimestamp - b.createdTimestamp,
+  );
 
   pollMessage = messages.last();
 
