@@ -89,6 +89,15 @@ export async function pullup() {
             PermissionsBitField.Flags.AddReactions,
           ],
         },
+        {
+          id: client.user!.id,
+          allow: [
+            PermissionsBitField.Flags.SendMessages,
+            PermissionsBitField.Flags.CreatePublicThreads,
+            PermissionsBitField.Flags.CreatePrivateThreads,
+            PermissionsBitField.Flags.AddReactions,
+          ],
+        },
       ],
     });
   }

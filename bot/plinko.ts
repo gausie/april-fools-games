@@ -243,7 +243,7 @@ async function renderBoard() {
       // If we can just drop down, do so
       if (pegs[y + 1][x] === "　" || y >= pegs.length - 2) break;
 
-      // Otherwise either bounce of the walls or randomly
+      // Otherwise either bounce off the walls or randomly
       if (x === 0) {
         state.ball[0]++;
       } else if (x >= pegs[0].length - 1) {
@@ -288,6 +288,14 @@ export async function pullup() {
         {
           id: client.guild.id,
           deny: [
+            PermissionsBitField.Flags.SendMessages,
+            PermissionsBitField.Flags.CreatePublicThreads,
+            PermissionsBitField.Flags.CreatePrivateThreads,
+          ],
+        },
+        {
+          id: client.user!.id,
+          allow: [
             PermissionsBitField.Flags.SendMessages,
             PermissionsBitField.Flags.CreatePublicThreads,
             PermissionsBitField.Flags.CreatePrivateThreads,

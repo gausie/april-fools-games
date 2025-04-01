@@ -12,8 +12,8 @@ await client.login();
 await scaffold.pullup();
 await tugofwar.pullup();
 await plinko.pullup();
-await duckshoot.pullup();
 await unpollpular.pullup();
 await kissingbooth.pullup();
+await duckshoot.pullup();
 
 console.log("Let the games commence/continue");

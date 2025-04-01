@@ -47,7 +47,14 @@ async function assignTeams() {
       .sort(([, a], [, b]) => a - b)
       .slice(0, 2);
     const team = bottomTwo[Math.floor(Math.random() * bottomTwo.length)][0];
-    await member.roles.add(teamRoles[team]);
+    try {
+      await member.roles.add(teamRoles[team]);
+    } catch (error) {
+      console.log(
+        `[GENERAL] Failed to assign ${team} to ${member.user.username}: ${error}`,
+      );
+      return;
+    }
     counts[team] += 1;
   }
 
@@ -70,7 +77,8 @@ async function assignTeams() {
   }
 
   // Phase 3: assign teams to unverified members
-  for (const member of client.guild.members.cache.values()) {
+  const members = await client.guild.members.fetch();
+  for (const member of members.values()) {
     await assignRandomTeam(member);
   }
 }
@@ -116,6 +124,14 @@ export async function pullup() {
         {
           id: client.guild.id,
           deny: [
+            PermissionsBitField.Flags.SendMessages,
+            PermissionsBitField.Flags.CreatePublicThreads,
+            PermissionsBitField.Flags.CreatePrivateThreads,
+          ],
+        },
+        {
+          id: client.user!.id,
+          allow: [
             PermissionsBitField.Flags.SendMessages,
             PermissionsBitField.Flags.CreatePublicThreads,
             PermissionsBitField.Flags.CreatePrivateThreads,
@@ -171,6 +187,14 @@ export async function pullup() {
             allow: [
               PermissionsBitField.Flags.ViewChannel,
               PermissionsBitField.Flags.SendMessages,
+            ],
+          },
+          {
+            id: client.user!.id,
+            allow: [
+              PermissionsBitField.Flags.SendMessages,
+              PermissionsBitField.Flags.CreatePublicThreads,
+              PermissionsBitField.Flags.CreatePrivateThreads,
             ],
           },
         ],

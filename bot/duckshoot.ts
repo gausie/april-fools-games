@@ -3,6 +3,7 @@ import {
   DiscordAPIError,
   Events,
   Message,
+  MessageFlags,
   PermissionsBitField,
 } from "discord.js";
 import { client } from "./client.js";
@@ -28,7 +29,10 @@ async function postTarget() {
   const channel = channels[Math.floor(Math.random() * channels.length)];
   const target = Math.random() < 0.1 ? "🦆" : "🎯";
   console.log(`[DUCKSHOOT] Posted ${target} in ${channel.name}`);
-  return await channel.send(target);
+  return await channel.send({
+    content: target,
+    flags: MessageFlags.SuppressNotifications,
+  });
 }
 
 function isTargetMessage(message: Message<boolean>) {

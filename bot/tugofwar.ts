@@ -160,7 +160,13 @@ async function handleAddOrRemove(
     }
 
     // Update score on message
-    await pairing.message!.edit({ content: renderPairing(pairing) });
+    if (!pairing.message) {
+      console.log(
+        `[TUGOFWAR] Something has gone wrong, pairing message is undefined`,
+      );
+      return;
+    }
+    await pairing.message.edit({ content: renderPairing(pairing) });
 
     // Only allow member to be in one battle at a time
     if (add) {
@@ -197,12 +203,20 @@ export async function pullup() {
       name: CHANNEL_NAME,
       type: ChannelType.GuildText,
       topic:
-        "Welcome to Tug of War game! Your team has three different matches - you can help in a match by reacting with a 💪. The team that has the most reactions wins!",
+        "Welcome to Tug of War game! Your team has three different matches - you can help in a match by reacting with a 💪. The team that has the most reactions wins 10 points!",
       parent: container,
       permissionOverwrites: [
         {
           id: client.guild.id,
           deny: [
+            PermissionsBitField.Flags.SendMessages,
+            PermissionsBitField.Flags.CreatePublicThreads,
+            PermissionsBitField.Flags.CreatePrivateThreads,
+          ],
+        },
+        {
+          id: client.user!.id,
+          allow: [
             PermissionsBitField.Flags.SendMessages,
             PermissionsBitField.Flags.CreatePublicThreads,
             PermissionsBitField.Flags.CreatePrivateThreads,
@@ -234,7 +248,7 @@ export async function pullup() {
     });
   }
 
-  setInterval(async () => {
+  async function checkMatches() {
     const now = new Date();
     for (const pairing of pairings) {
       // If match is not over, ignore
@@ -244,7 +258,7 @@ export async function pullup() {
         console.log(
           `[TUGOFWAR] Match ${pairing.pair[0]} vs ${pairing.pair[1]} ended in a draw, ah well`,
         );
-      } else{
+      } else {
         const [winner, loser] =
           pairing.score < 0
             ? [pairing.pair[0], pairing.pair[1]]
@@ -263,7 +277,7 @@ export async function pullup() {
 
         await awardPoints(
           winner,
-          25,
+          10,
           `${gerund} ${loser} in a game of tug of war`,
         );
       }
@@ -277,7 +291,11 @@ export async function pullup() {
 
       await pairing.message?.edit({ content: renderPairing(pairing) });
     }
-  }, 1000 * 30);
+    const timeTaken = Date.now() - now.getTime();
+    // We want this frame to take at least 30 seconds, but don't bother waiting if it's already been 30 seconds
+    setTimeout(checkMatches, Math.max(0, 1000 * 30 - timeTaken));
+  }
+  await checkMatches();
 
   client.on(Events.MessageReactionAdd, async (reaction, user) => {
     handleAddOrRemove(reaction, user, true);
