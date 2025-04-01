@@ -20,6 +20,7 @@ const state = {
   message: undefined as Message | undefined,
   user: null as User | null,
   wait: 0,
+  icon: "🎱",
 };
 
 const SPOTS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"];
@@ -186,7 +187,7 @@ async function renderBoard() {
     case "active": {
       // Move the ball
       const [x, y] = state.ball;
-      pegs[y][x] = "🎱";
+      pegs[y][x] = state.icon;
 
       status = `**${userMention(state.user!.id)}** is dropping a ball for **${state.team}**!`;
       break;
@@ -194,7 +195,7 @@ async function renderBoard() {
     case "completed": {
       // Keep showing the ball for reference
       const [x, y] = state.ball;
-      pegs[y][x] = "🎱";
+      pegs[y][x] = state.icon;
 
       const prize = PRIZE_ROW[state.ball[0]];
       let points = 0;
@@ -358,6 +359,7 @@ export async function pullup() {
       state.status = "active";
       state.user = member.user;
       state.ball = [SPOTS.indexOf(reaction.emoji.name) * 2 + 1, 0];
+      state.icon = Math.random() > 0.05 ? "🎱" : "🐴";
       console.log(
         `[PLINKO] Ball dropped by ${user.username} from ${state.team} at ${reaction.emoji.name}`,
       );
