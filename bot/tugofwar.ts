@@ -25,7 +25,6 @@ import {
 const CHANNEL_NAME = `tug-of-war-🪢`;
 
 const GAME_LENGTH = 1000 * 60 * 60; // 1 hour
-const EXTRA_TIME = 1000 * 60 * 15; // 15 minutes
 
 type Pairing = {
   message?: Message;
@@ -33,7 +32,6 @@ type Pairing = {
   content: string;
   score: number;
   matchEnds: Date;
-  extraTime: boolean;
 };
 
 const pairings = TEAMS.flatMap<Pairing>((a, i) =>
@@ -43,14 +41,13 @@ const pairings = TEAMS.flatMap<Pairing>((a, i) =>
     message: undefined,
     score: 0,
     matchEnds: new Date(),
-    extraTime: false,
   })),
 );
 
 function renderPairing(pairing: Pairing) {
   const ropeBefore = "⎯".repeat(Math.max(-20, 20 + pairing.score));
   const ropeAfter = "⎯".repeat(Math.min(20, 20 - pairing.score));
-  return `${pairing.content} (match ends ${time(pairing.matchEnds, "R")}${pairing.extraTime ? " EXTRA TIME" : ""})\n\n${teamSymbol(pairing.pair[0])}${ropeBefore}🪢${ropeAfter}${teamSymbol(pairing.pair[1])}\n\n ​`;
+  return `${pairing.content} (match ends ${time(pairing.matchEnds, "R")}\n\n${teamSymbol(pairing.pair[0])}${ropeBefore}🪢${ropeAfter}${teamSymbol(pairing.pair[1])}\n\n ​`;
 }
 
 async function updateScore(
@@ -245,35 +242,31 @@ export async function pullup() {
 
       if (pairing.score === 0) {
         console.log(
-          `[TUGOFWAR] Match ${pairing.pair[0]} vs ${pairing.pair[1]} ended in a draw, so adding extra time`,
+          `[TUGOFWAR] Match ${pairing.pair[0]} vs ${pairing.pair[1]} ended in a draw, ah well`,
         );
-        pairing.extraTime = true;
-        pairing.matchEnds = new Date(Date.now() + EXTRA_TIME);
-        await pairing.message?.edit({ content: renderPairing(pairing) });
-        continue;
+      } else{
+        const [winner, loser] =
+          pairing.score < 0
+            ? [pairing.pair[0], pairing.pair[1]]
+            : [pairing.pair[1], pairing.pair[0]];
+        const score = Math.abs(pairing.score);
+        console.log(
+          `[TUGOFWAR] Match ${pairing.pair[0]} vs ${pairing.pair[1]} ended with ${winner} winning by ${score}`,
+        );
+
+        let gerund = (() => {
+          if (score < 3) return "barely beating";
+          if (score < 6) return "besting";
+          if (score < 15) return "dominating";
+          return "annihilating";
+        })();
+
+        await awardPoints(
+          winner,
+          25,
+          `${gerund} ${loser} in a game of tug of war`,
+        );
       }
-
-      const [winner, loser] =
-        pairing.score < 0
-          ? [pairing.pair[0], pairing.pair[1]]
-          : [pairing.pair[1], pairing.pair[0]];
-      const score = Math.abs(pairing.score);
-      console.log(
-        `[TUGOFWAR] Match ${pairing.pair[0]} vs ${pairing.pair[1]} ended with ${winner} winning by ${score}`,
-      );
-
-      let gerund = (() => {
-        if (score < 3) return "barely beating";
-        if (score < 6) return "besting";
-        if (score < 15) return "dominating";
-        return "annihilating";
-      })();
-
-      await awardPoints(
-        winner,
-        25,
-        `${gerund} ${loser} in a game of tug of war`,
-      );
 
       // Remove the reactions in preparation for the next match
       await pairing.message?.reactions.resolve("💪")?.remove();
@@ -281,7 +274,6 @@ export async function pullup() {
       // And reset the pairing metadata
       pairing.matchEnds = new Date(Date.now() + GAME_LENGTH);
       pairing.score = 0;
-      pairing.extraTime = false;
 
       await pairing.message?.edit({ content: renderPairing(pairing) });
     }
