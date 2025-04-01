@@ -62,7 +62,6 @@ async function createPoll(channel: SendableChannels) {
 
 export async function pullup() {
   console.log("[UNPOLLPULAR] Starting");
-  let pollMessage: Message | undefined = undefined;
 
   let container = client.guild.channels.cache.find(
     (c) => c?.name === CONTAINER,
@@ -111,7 +110,7 @@ export async function pullup() {
     (a, b) => a.createdTimestamp - b.createdTimestamp,
   );
 
-  pollMessage = messages.last();
+  let pollMessage: Message | undefined = messages.last();
 
   if (!pollMessage || !pollMessage.poll || pollMessage.poll.resultsFinalized) {
     pollMessage = await createPoll(channel);
@@ -136,7 +135,7 @@ export async function pullup() {
     if (!poll.resultsFinalized) return;
 
     const losingValue =
-      poll.answers.sort((a, b) => a.voteCount - b.voteCount).get(0)
+      poll.answers.sort((a, b) => a.voteCount - b.voteCount).first()
         ?.voteCount ?? 0;
 
     const losers = poll.answers.filter((a) => a.voteCount === losingValue);
